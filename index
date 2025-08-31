@@ -1,0 +1,842 @@
+# Create redesigned website files for Feel Good Sourdough
+
+import os, json, textwrap, zipfile, io, datetime, pathlib
+
+base_dir = "/mnt/data/feel-good-sourdough-site"
+os.makedirs(base_dir, exist_ok=True)
+
+# --------- index.html ---------
+index_html = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Feel Good Sourdough — Fresh, Allergy-Aware Breads & Pastries</title>
+  <meta name="description" content="Order fresh, allergy-aware sourdough breads and pastries for pickup. Vegan and gluten-free options available. Reserve your bakes online in minutes." />
+  <meta property="og:title" content="Feel Good Sourdough — Order Online" />
+  <meta property="og:description" content="Reserve breads and pastries online. Allergy-aware options, weekly specials, easy pickup scheduling." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/og.jpg" />
+  <link rel="icon" href="assets/favicon.ico" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preload" href="app.js" as="script" />
+  <script type="application/ld+json" id="structured-data">
+  {
+    "@context": "https://schema.org",
+    "@type": "Bakery",
+    "name": "Feel Good Sourdough",
+    "url": "https://feelgoodsourdough.com",
+    "image": "https://feelgoodsourdough.com/assets/og.jpg",
+    "servesCuisine": "Bakery",
+    "sameAs": ["https://www.instagram.com/","https://www.facebook.com/"],
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Louisville",
+      "addressRegion": "KY",
+      "addressCountry": "US"
+    },
+    "openingHoursSpecification": [
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Friday"], "opens": "10:00", "closes": "18:00" },
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday"], "opens": "09:00", "closes": "15:00" }
+    ],
+    "priceRange": "$$",
+    "knowsAbout": ["Vegan", "Gluten-free", "Allergy-aware", "Sourdough"]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#menu">Skip to menu</a>
+
+  <header class="site-header">
+    <div class="container wrap header-wrap">
+      <a href="#" class="brand" aria-label="Feel Good Sourdough home">
+        <img src="assets/logo.svg" alt="" class="brand-logo" />
+        <span class="brand-text">Feel Good Sourdough</span>
+      </a>
+      <nav class="primary-nav" aria-label="Primary">
+        <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+        <ul id="nav-menu" class="nav-list">
+          <li><a href="#menu">Order</a></li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+      <button id="cart-button" class="cart-button" aria-haspopup="dialog" aria-controls="cart-drawer">
+        <span class="cart-count-badge" aria-live="polite" aria-atomic="true">0</span>
+        Cart
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container wrap hero-wrap">
+        <div class="hero-copy">
+          <h1>Fresh, allergy-aware sourdough—order online for pickup</h1>
+          <p class="lead">Reserve your favorites in minutes. Vegan and gluten-free options, baked with care.</p>
+          <div class="hero-ctas">
+            <a href="#menu" class="btn btn-primary">Start an order</a>
+            <a href="#how-it-works" class="btn btn-outline">How it works</a>
+          </div>
+          <ul class="badges" aria-label="Highlights">
+            <li class="badge">Vegan options</li>
+            <li class="badge">Gluten-free options</li>
+            <li class="badge">Allergy-aware kitchen</li>
+            <li class="badge">Local pickup</li>
+          </ul>
+        </div>
+        <picture class="hero-art" aria-hidden="true">
+          <img src="assets/hero.jpg" alt="" />
+        </picture>
+      </div>
+    </section>
+
+    <section id="menu" class="menu-section">
+      <div class="container wrap">
+        <header class="section-header">
+          <h2>Menu</h2>
+          <p>Filter by category or dietary preference, then add to cart. Limited quantities—order early!</p>
+        </header>
+
+        <div class="filters" role="group" aria-label="Filters">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label for="search">Search</label>
+              <input id="search" type="search" placeholder="Sourdough, cookie, vegan…" autocomplete="off" />
+            </div>
+            <div class="filter-group">
+              <label for="category">Category</label>
+              <select id="category">
+                <option value="">All</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="diet">Dietary</label>
+              <select id="diet">
+                <option value="">Any</option>
+                <option value="vegan">Vegan</option>
+                <option value="gluten-free">Gluten-free</option>
+                <option value="nut-free">Nut-free</option>
+                <option value="dairy-free">Dairy-free</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="sort">Sort</label>
+              <select id="sort">
+                <option value="popular">Most popular</option>
+                <option value="price-asc">Price: Low → High</option>
+                <option value="price-desc">Price: High → Low</option>
+                <option value="alpha">A → Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <ul id="product-grid" class="product-grid" aria-live="polite"></ul>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="hiw-section">
+      <div class="container wrap grid-2">
+        <div>
+          <h2>How it works</h2>
+          <ol class="hiw-steps">
+            <li><strong>Add to cart.</strong> Pick your bakes and choose quantities.</li>
+            <li><strong>Schedule pickup.</strong> Select a time window—most items need <span class="nowrap">48 hours</span> lead-time.</li>
+            <li><strong>Pay & confirm.</strong> You’ll get an email with your order details.</li>
+          </ol>
+          <p class="note">Allergy notice: we are allergy-aware, but not a certified allergen-free facility. Please review product notes carefully and contact us with questions.</p>
+        </div>
+        <div class="card calendar-card" aria-hidden="true">
+          <img src="assets/calendar.jpg" alt="" />
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="about-section">
+      <div class="container wrap grid-2">
+        <div>
+          <h2>About Feel Good Sourdough</h2>
+          <p>Small-batch bakery focused on naturally leavened breads and pastries, made with simple ingredients and a lot of love.</p>
+          <p>We believe in transparency for allergens and thoughtful options for vegan and gluten-free diets.</p>
+        </div>
+        <div class="card">
+          <h3>Pickup windows</h3>
+          <ul class="list">
+            <li>Fri: 10:00–18:00</li>
+            <li>Sat: 09:00–15:00</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="faq-section">
+      <div class="container wrap">
+        <h2>FAQ</h2>
+        <details>
+          <summary>Do you offer gluten-free?</summary>
+          <p>We offer gluten-free options baked separately when possible, though we are not a certified gluten-free facility. Cross-contact is possible.</p>
+        </details>
+        <details>
+          <summary>When should I order?</summary>
+          <p>Most items require 48h lead time. Special orders may need more.</p>
+        </details>
+        <details>
+          <summary>What payment methods are available?</summary>
+          <p>Online checkout supports card payments via Stripe once connected. In-person pickup payments are also available.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="contact" class="contact-section">
+      <div class="container wrap grid-2">
+        <form id="contact-form" class="card" netlify>
+          <h2>Questions?</h2>
+          <label>Name<input name="name" required /></label>
+          <label>Email<input name="email" type="email" required /></label>
+          <label>Message<textarea name="message" rows="5" required></textarea></label>
+          <button class="btn btn-primary">Send</button>
+        </form>
+        <div class="card">
+          <h3>Visit us</h3>
+          <p>Louisville, KY</p>
+          <p><a href="mailto:orders@feelgoodsourdough.com">orders@feelgoodsourdough.com</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="cart-drawer" class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+    <div class="cart-inner">
+      <header class="cart-header">
+        <h2 id="cart-title">Your cart</h2>
+        <button class="icon-button" id="cart-close" aria-label="Close cart">✕</button>
+      </header>
+      <ul id="cart-items" class="cart-items"></ul>
+      <div id="cart-empty" class="cart-empty">Your cart is empty.</div>
+      <footer class="cart-footer">
+        <div class="cart-row">
+          <span>Subtotal</span>
+          <strong id="cart-subtotal">$0.00</strong>
+        </div>
+        <button id="checkout-button" class="btn btn-primary btn-full" disabled>Checkout</button>
+        <p class="tiny">By checking out you agree to our <a href="#" id="policy-link">allergen & pickup policy</a>.</p>
+      </footer>
+    </div>
+  </aside>
+
+  <dialog id="checkout-dialog" aria-labelledby="checkout-title">
+    <form id="checkout-form" method="dialog">
+      <header class="dialog-header">
+        <h3 id="checkout-title">Checkout</h3>
+        <button type="button" class="icon-button" id="checkout-close" aria-label="Close">✕</button>
+      </header>
+
+      <section class="dialog-body grid-2">
+        <div>
+          <h4>Pickup details</h4>
+          <label>Pickup date
+            <input type="date" id="pickup-date" required />
+          </label>
+          <label>Pickup time
+            <select id="pickup-time" required>
+              <option value="">Select a time</option>
+            </select>
+          </label>
+          <p class="tiny">Most items require 48h lead time. Times outside business hours are hidden.</p>
+        </div>
+
+        <div>
+          <h4>Contact</h4>
+          <label>Full name
+            <input type="text" id="customer-name" required autocomplete="name" />
+          </label>
+          <label>Email
+            <input type="email" id="customer-email" required autocomplete="email" />
+          </label>
+          <label>Phone
+            <input type="tel" id="customer-phone" required autocomplete="tel" />
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h4>Order summary</h4>
+        <ul id="summary-list" class="summary-list"></ul>
+        <div class="cart-row">
+          <span>Subtotal</span>
+          <strong id="summary-subtotal">$0.00</strong>
+        </div>
+      </section>
+
+      <menu class="dialog-actions">
+        <button type="button" id="download-order" class="btn btn-outline">Download order</button>
+        <button type="submit" id="place-order" class="btn btn-primary">Place order</button>
+      </menu>
+
+      <p class="tiny">Payment: integrate Stripe or Square using the guide in README. For now, orders are emailed to the shop.</p>
+    </form>
+  </dialog>
+
+  <template id="product-card-template">
+    <li class="product-card">
+      <button class="fav" aria-pressed="false" title="Save to favorites" aria-label="Save to favorites">♡</button>
+      <img class="product-img" alt="" loading="lazy" />
+      <div class="product-body">
+        <div class="product-heading">
+          <h3 class="product-title"></h3>
+          <span class="price"></span>
+        </div>
+        <p class="desc"></p>
+        <ul class="tags" aria-label="Dietary tags"></ul>
+        <div class="qty-row">
+          <label class="qty-label">Qty
+            <input type="number" min="1" value="1" class="qty-input" />
+          </label>
+          <button class="btn btn-small add">Add to cart</button>
+        </div>
+      </div>
+    </li>
+  </template>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
+"""
+
+# --------- styles.css ---------
+styles_css = """/* Basic modern, accessible styles */
+:root{
+  --bg:#fff; --text:#141414; --muted:#6b7280; --brand:#2f855a; --brand-ink:#1f513a;
+  --surface:#f6f7f8; --card:#ffffff; --ring:#a7f3d0;
+  --radius:14px; --radius-sm:10px; --shadow:0 10px 30px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial;
+  color:var(--text); background:var(--bg);}
+img{max-width:100%; display:block}
+.nowrap{white-space:nowrap}
+.container{max-width:1120px;margin:0 auto;padding:0 20px}
+.wrap{padding:48px 0}
+.skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip-link:focus{left:16px;top:16px;width:auto;height:auto;background:#000;color:#fff;padding:8px 12px;border-radius:8px}
+
+.site-header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:saturate(1.5) blur(10px);border-bottom:1px solid #eee;z-index:20}
+.header-wrap{display:flex;align-items:center;gap:16px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.brand-logo{width:36px;height:36px}
+.brand-text{font-weight:700}
+.primary-nav .nav-list{display:flex;gap:16px;list-style:none;margin:0;padding:0}
+.primary-nav a{text-decoration:none;color:inherit;font-weight:600}
+.nav-toggle{display:none}
+.cart-button{position:relative;padding:10px 12px;border-radius:999px;border:1px solid #ddd;background:#fff;cursor:pointer}
+.cart-count-badge{position:absolute;top:-6px;right:-6px;background:var(--brand);color:#fff;border-radius:999px;padding:2px 6px;font-size:12px}
+
+.hero{background:linear-gradient(180deg,#f1f8f5, #ffffff)}
+.hero-wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center}
+.lead{font-size:1.15rem;color:var(--muted);max-width:50ch}
+.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:12px 18px;font-weight:700;border:1px solid transparent;cursor:pointer;text-decoration:none}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-ink)}
+.btn-outline{background:#fff;border-color:#d1d5db}
+.btn-small{padding:8px 12px}
+.btn-full{width:100%}
+.badges{list-style:none;display:flex;gap:8px;flex-wrap:wrap;padding:0;margin:18px 0 0}
+.badge{background:#e5f6ee;border:1px solid #c7eedf;border-radius:999px;padding:6px 10px;font-weight:600;color:#14532d}
+
+.menu-section .filters{background:var(--surface);border:1px solid #e5e7eb;border-radius:var(--radius);padding:14px}
+.filter-row{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:12px}
+.filter-group{display:flex;flex-direction:column;gap:6px}
+.filter-group input,.filter-group select{padding:10px;border-radius:10px;border:1px solid #d1d5db}
+
+.product-grid{list-style:none;padding:0;margin:24px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.product-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;position:relative;overflow:hidden;border:1px solid #eef2f7}
+.product-card .fav{position:absolute;top:10px;right:10px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;cursor:pointer}
+.product-img{aspect-ratio:4/3;object-fit:cover;background:#f3f4f6}
+.product-body{padding:14px;display:flex;flex-direction:column;gap:12px}
+.product-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.product-title{margin:0;font-size:1.05rem}
+.price{font-weight:800}
+.desc{color:var(--muted);margin:0}
+.tags{list-style:none;display:flex;gap:6px;flex-wrap:wrap;padding:0;margin:0}
+.tags li{font-size:.8rem;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:4px 8px}
+.qty-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.qty-input{width:80px;padding:8px;border-radius:10px;border:1px solid #d1d5db}
+
+.hiw-section .grid-2,
+.about-section .grid-2,
+.contact-section .grid-2,
+.dialog-body.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;align-items:start}
+.card{background:var(--card);border:1px solid #e5e7eb;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.calendar-card img{border-radius:var(--radius)}
+
+.faq-section details{background:#f9fafb;border:1px solid #e5e7eb;border-radius:var(--radius-sm);padding:12px;margin:10px 0}
+.faq-section summary{cursor:pointer;font-weight:700}
+
+.cart-drawer{position:fixed;inset:0 0 0 auto;width:min(420px, 100%);background:#fff;transform:translateX(100%);transition:transform .2s ease;box-shadow:-20px 0 40px rgba(0,0,0,.12);border-left:1px solid #eee;z-index:50}
+.cart-drawer[aria-hidden="false"]{transform:none}
+.cart-inner{display:flex;flex-direction:column;height:100%}
+.cart-header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #eee}
+.icon-button{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;cursor:pointer}
+.cart-items{flex:1;overflow:auto;list-style:none;margin:0;padding:0}
+.cart-item{display:grid;grid-template-columns:64px 1fr auto;gap:10px;padding:12px 16px;border-bottom:1px solid #f1f5f9}
+.cart-item img{width:64px;height:64px;object-fit:cover;border-radius:8px}
+.cart-item .name{font-weight:700;margin:0}
+.cart-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+.cart-footer{padding:12px 16px;border-top:1px solid #eee}
+.cart-empty{padding:24px;text-align:center;color:var(--muted)}
+
+dialog{width:min(720px, 96vw);border:none;border-radius:16px;box-shadow:var(--shadow);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.dialog-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eee}
+.dialog-body{padding:18px}
+.dialog-actions{display:flex;gap:10px;justify-content:flex-end;padding:18px;border-top:1px solid #eee}
+.summary-list{list-style:none;padding:0;margin:0 0 8px 0}
+.summary-list li{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e5e7eb}
+label{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+input,select,textarea{padding:10px;border-radius:10px;border:1px solid #d1d5db}
+
+.section-header h2{margin:0}
+.section-header p{color:var(--muted)}
+
+.note{background:#fffbea;border:1px solid #fde68a;border-radius:12px;padding:12px}
+
+.list{padding-left:18px}
+
+@media (max-width: 960px){
+  .hero-wrap{grid-template-columns:1fr}
+  .product-grid{grid-template-columns:repeat(2,1fr)}
+  .filter-row{grid-template-columns:1fr 1fr; grid-auto-rows:minmax(0,auto)}
+}
+@media (max-width: 640px){
+  .primary-nav .nav-list{display:none}
+  .nav-toggle{display:inline-block;border:1px solid #d1d5db;background:#fff;border-radius:999px;padding:8px 12px}
+  .product-grid{grid-template-columns:1fr}
+}
+.tiny{font-size:.82rem;color:var(--muted)}
+"""
+
+# --------- app.js ---------
+app_js = """/* Feel Good Sourdough — lightweight storefront without a backend.
+   - Product catalog loaded from products.json
+   - Client-side cart with localStorage
+   - Checkout dialog generates a structured order and emails it
+   - Lead time + business hours guardrails
+*/
+
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+const state = {
+  products: [],
+  cart: JSON.parse(localStorage.getItem('fgs.cart') || '[]'),
+  favorites: JSON.parse(localStorage.getItem('fgs.favs') || '[]'),
+  categories: new Set(),
+};
+
+function fmtMoney(n){ return new Intl.NumberFormat('en-US', {style:'currency', currency:'USD'}).format(n); }
+
+function persist(){
+  localStorage.setItem('fgs.cart', JSON.stringify(state.cart));
+  localStorage.setItem('fgs.favs', JSON.stringify(state.favorites));
+}
+
+async function loadProducts(){
+  const res = await fetch('products.json', {cache:'no-store'});
+  const data = await res.json();
+  state.products = data;
+  data.forEach(p => state.categories.add(p.category));
+  buildFilters();
+  renderGrid();
+  updateCartBadge();
+}
+
+function buildFilters(){
+  const catSelect = $('#category');
+  [...state.categories].sort().forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    catSelect.appendChild(opt);
+  });
+}
+
+function matchesFilters(p){
+  const q = $('#search').value.trim().toLowerCase();
+  const cat = $('#category').value;
+  const diet = $('#diet').value;
+  const hay = [p.name, p.description, p.tags.join(' '), p.category].join(' ').toLowerCase();
+  if(q && !hay.includes(q)) return false;
+  if(cat && p.category !== cat) return false;
+  if(diet && !p.tags.includes(diet)) return false;
+  return true;
+}
+
+function renderGrid(){
+  const grid = $('#product-grid');
+  grid.innerHTML = '';
+  let products = state.products.filter(matchesFilters);
+  const sort = $('#sort').value;
+  if(sort==='alpha') products.sort((a,b)=>a.name.localeCompare(b.name));
+  if(sort==='price-asc') products.sort((a,b)=>a.price - b.price);
+  if(sort==='price-desc') products.sort((a,b)=>b.price - a.price);
+  if(sort==='popular') products.sort((a,b)=>(b.popularity||0)-(a.popularity||0));
+  if(products.length===0){
+    grid.innerHTML = '<li class="card" style="grid-column:1/-1">No items match your filters.</li>';
+    return;
+  }
+
+  const tpl = $('#product-card-template');
+  products.forEach(p => {
+    const node = tpl.content.cloneNode(true);
+    const card = node.querySelector('.product-card');
+    card.dataset.id = p.id;
+    const img = node.querySelector('.product-img');
+    img.src = p.image; img.alt = p.name;
+
+    node.querySelector('.product-title').textContent = p.name;
+    node.querySelector('.price').textContent = fmtMoney(p.price);
+    node.querySelector('.desc').textContent = p.description;
+
+    const tags = node.querySelector('.tags');
+    p.tags.forEach(t => {
+      const li = document.createElement('li'); li.textContent = t; tags.appendChild(li);
+    });
+
+    const favBtn = node.querySelector('.fav');
+    favBtn.setAttribute('aria-pressed', String(state.favorites.includes(p.id)));
+    favBtn.addEventListener('click', () => {
+      const idx = state.favorites.indexOf(p.id);
+      if(idx>=0) state.favorites.splice(idx,1); else state.favorites.push(p.id);
+      favBtn.setAttribute('aria-pressed', String(state.favorites.includes(p.id)));
+      persist();
+    });
+
+    const qtyInput = node.querySelector('.qty-input');
+    node.querySelector('.add').addEventListener('click', () => {
+      const qty = Math.max(1, parseInt(qtyInput.value || '1', 10));
+      addToCart(p.id, qty);
+      openCart();
+    });
+
+    grid.appendChild(node);
+  });
+}
+
+function addToCart(id, qty){
+  const prod = state.products.find(p => p.id===id);
+  if(!prod) return;
+  const existing = state.cart.find(i => i.id===id);
+  if(existing) existing.qty += qty; else state.cart.push({id, qty});
+  persist(); renderCart(); updateCartBadge();
+}
+
+function removeFromCart(id){
+  state.cart = state.cart.filter(i => i.id!==id);
+  persist(); renderCart(); updateCartBadge();
+}
+
+function updateCartBadge(){
+  const count = state.cart.reduce((s,i)=>s+i.qty,0);
+  $('.cart-count-badge').textContent = count;
+  $('#checkout-button').disabled = count===0;
+}
+
+function renderCart(){
+  const items = $('#cart-items'); items.innerHTML = '';
+  let subtotal = 0;
+  state.cart.forEach(i => {
+    const p = state.products.find(x=>x.id===i.id);
+    const li = document.createElement('li'); li.className='cart-item';
+    const img = document.createElement('img'); img.src = p.image; img.alt = '';
+    const meta = document.createElement('div');
+    const name = document.createElement('p'); name.className='name'; name.textContent = p.name;
+    const qty = document.createElement('input'); qty.type='number'; qty.min='1'; qty.value = i.qty; qty.className='qty-input';
+    qty.addEventListener('change', () => {
+      i.qty = Math.max(1, parseInt(qty.value||'1',10));
+      persist(); renderCart(); updateCartBadge();
+    });
+    meta.appendChild(name);
+    meta.appendChild(qty);
+
+    const price = document.createElement('div');
+    const line = p.price * i.qty; subtotal += line;
+    price.innerHTML = '<div>'+fmtMoney(line)+'</div><button class="icon-button" aria-label="Remove">Remove</button>';
+    price.querySelector('button').addEventListener('click',()=> removeFromCart(i.id));
+
+    li.appendChild(img); li.appendChild(meta); li.appendChild(price);
+    items.appendChild(li);
+  });
+  $('#cart-subtotal').textContent = fmtMoney(subtotal);
+  $('#cart-empty').style.display = state.cart.length ? 'none' : 'block';
+  $('#summary-subtotal').textContent = fmtMoney(subtotal);
+  const summary = $('#summary-list'); if(summary){ summary.innerHTML = '';
+    state.cart.forEach(i => {
+      const p = state.products.find(x=>x.id===i.id);
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${i.qty}× ${p.name}</span><strong>${fmtMoney(p.price*i.qty)}</strong>`;
+      summary.appendChild(li);
+    });
+  }
+}
+
+function openCart(){ const dr=$('#cart-drawer'); dr.setAttribute('aria-hidden','false'); dr.focus(); document.body.style.overflow='hidden'; }
+function closeCart(){ const dr=$('#cart-drawer'); dr.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+$('#cart-button').addEventListener('click', openCart);
+$('#cart-close').addEventListener('click', closeCart);
+$('#checkout-button').addEventListener('click', () => { closeCart(); openCheckout(); });
+
+// Checkout dialog
+const dialog = $('#checkout-dialog');
+function openCheckout(){
+  if(!dialog.open) dialog.showModal();
+  renderCart(); // ensure summary is fresh
+  seedPickupDateTime();
+}
+$('#checkout-close').addEventListener('click', () => dialog.close());
+$('#checkout-form').addEventListener('cancel', e => e.preventDefault());
+
+function businessHoursFor(date){
+  // Fri (5): 10-18, Sat (6): 9-15 (0=Sun)
+  const d = new Date(date); const dow = d.getDay();
+  if(dow===5) return [10, 18];
+  if(dow===6) return [9, 15];
+  return null; // closed
+}
+
+function seedPickupDateTime(){
+  const dateInput = $('#pickup-date');
+  const timeSelect = $('#pickup-time');
+  timeSelect.innerHTML = '<option value="">Select a time</option>';
+  const today = new Date();
+  const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()+2); // 48h lead
+  dateInput.min = minDate.toISOString().slice(0,10);
+  dateInput.value = dateInput.value || dateInput.min;
+  buildTimeOptions(dateInput.value);
+  dateInput.addEventListener('change', () => buildTimeOptions(dateInput.value));
+}
+
+function buildTimeOptions(value){
+  const timeSelect = $('#pickup-time');
+  timeSelect.innerHTML = '<option value="">Select a time</option>';
+  const bh = businessHoursFor(value);
+  if(!bh){ const opt=document.createElement('option'); opt.value=''; opt.textContent='Closed this day'; timeSelect.appendChild(opt); return; }
+  const [open, close] = bh;
+  for(let h=open; h<close; h++){
+    ['00','30'].forEach(m => {
+      const t = `${String(h).padStart(2,'0')}:${m}`;
+      const opt = document.createElement('option'); opt.value=t; opt.textContent=t;
+      timeSelect.appendChild(opt);
+    });
+  }
+}
+
+$('#download-order').addEventListener('click', () => {
+  const order = buildOrderPayload();
+  const blob = new Blob([JSON.stringify(order, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `fgs-order-${Date.now()}.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+});
+
+$('#checkout-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const order = buildOrderPayload();
+  // For now, email the order
+  const body = encodeURIComponent(`New order from ${order.customer.name}
+Pickup: ${order.pickup.date} at ${order.pickup.time}
+
+Items:
+${order.items.map(i=>`- ${i.qty}× ${i.name} — ${fmtMoney(i.price*i.qty)}`).join('\\n')}
+
+Subtotal: ${fmtMoney(order.totals.subtotal)}
+
+Contact:
+Email: ${order.customer.email}
+Phone: ${order.customer.phone}
+
+Allergen Note: ${order.allergenNote || 'n/a'}
+`);
+  const mailto = `mailto:orders@feelgoodsourdough.com?subject=${encodeURIComponent('New Online Order')}&body=${body}`;
+  window.location.href = mailto;
+
+  // After sending, clear cart
+  state.cart = []; persist(); renderCart(); updateCartBadge();
+  dialog.close();
+  alert('Order drafted in your email client. We\'ll confirm by email soon!');
+});
+
+function buildOrderPayload(){
+  const name = $('#customer-name').value.trim();
+  const email = $('#customer-email').value.trim();
+  const phone = $('#customer-phone').value.trim();
+  const date = $('#pickup-date').value;
+  const time = $('#pickup-time').value;
+  if(!name || !email || !phone || !date || !time){
+    alert('Please complete pickup and contact details.'); throw new Error('Invalid');
+  }
+  const items = state.cart.map(i => {
+    const p = state.products.find(x=>x.id===i.id);
+    return { id: p.id, name: p.name, qty: i.qty, price: p.price };
+  });
+  const subtotal = items.reduce((s,i)=> s + i.price*i.qty, 0);
+  return {
+    vendor: 'Feel Good Sourdough',
+    placedAt: new Date().toISOString(),
+    pickup: { date, time },
+    customer: { name, email, phone },
+    items,
+    totals: { subtotal },
+    allergenNote: 'Customer acknowledges kitchen is not certified allergen-free.'
+  };
+}
+
+// Filters
+['#search','#category','#diet','#sort'].forEach(sel => {
+  $(sel).addEventListener('input', renderGrid);
+  $(sel).addEventListener('change', renderGrid);
+});
+
+// mobile nav
+$('.nav-toggle')?.addEventListener('click', (e)=>{
+  const list = $('#nav-menu');
+  const expanded = e.currentTarget.getAttribute('aria-expanded') === 'true';
+  e.currentTarget.setAttribute('aria-expanded', String(!expanded));
+  list.style.display = expanded ? 'none' : 'flex';
+});
+
+// Policy link -> simple alert
+$('#policy-link').addEventListener('click', (e)=>{
+  e.preventDefault();
+  alert('Allergen notice: we are allergy-aware but not certified allergen-free. Pickup only during posted hours. Most items require 48h lead time.');
+});
+
+// Service worker (optional)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+loadProducts();
+"""
+
+# --------- products.json ---------
+products = [
+  {
+    "id": "classic-sourdough",
+    "name": "Classic Country Sourdough",
+    "description": "Long-fermented, crusty loaf with a tender crumb.",
+    "price": 8.5,
+    "category": "Breads",
+    "tags": ["vegetarian"],
+    "image": "assets/bread1.jpg",
+    "popularity": 100
+  },
+  {
+    "id": "seeded-boule",
+    "name": "Seeded Boule",
+    "description": "Toasty sesame, flax, and sunflower seeds throughout.",
+    "price": 9.5,
+    "category": "Breads",
+    "tags": ["vegetarian"],
+    "image": "assets/bread2.jpg",
+    "popularity": 85
+  },
+  {
+    "id": "gf-loaf",
+    "name": "Gluten-Free Sourdough Loaf",
+    "description": "Naturally leavened, baked separately when possible.",
+    "price": 10.0,
+    "category": "Gluten-Free",
+    "tags": ["gluten-free", "dairy-free"],
+    "image": "assets/bread3.jpg",
+    "popularity": 95
+  },
+  {
+    "id": "vegan-cookies",
+    "name": "Vegan Chocolate Chip Cookies (6)",
+    "description": "Chewy edges, gooey center. Plant-based.",
+    "price": 12.0,
+    "category": "Pastries",
+    "tags": ["vegan", "dairy-free"],
+    "image": "assets/pastry1.jpg",
+    "popularity": 92
+  },
+  {
+    "id": "cinnamon-rolls",
+    "name": "Sourdough Cinnamon Rolls (4)",
+    "description": "Slow-proofed rolls with vanilla glaze.",
+    "price": 14.0,
+    "category": "Pastries",
+    "tags": ["vegetarian"],
+    "image": "assets/pastry2.jpg",
+    "popularity": 80
+  },
+  {
+    "id": "granola",
+    "name": "Maple Pecan Granola",
+    "description": "Toasty clusters, real maple syrup and pecans.",
+    "price": 11.0,
+    "category": "Pantry",
+    "tags": ["vegetarian"],
+    "image": "assets/pantry1.jpg",
+    "popularity": 60
+  },
+  {
+    "id": "vegan-loaf",
+    "name": "Vegan Sandwich Loaf",
+    "description": "Soft crumb, perfect for everyday sandwiches.",
+    "price": 9.0,
+    "category": "Breads",
+    "tags": ["vegan"],
+    "image": "assets/bread4.jpg",
+    "popularity": 70
+  },
+  {
+    "id": "nutfree-brownies",
+    "name": "Nutfree Fudge Brownies (4)",
+    "description": "Deep chocolate flavor. Baked in nut-free zone.",
+    "price": 13.0,
+    "category": "Pastries",
+    "tags": ["nut-free", "vegetarian"],
+    "image": "assets/pastry3.jpg",
+    "popularity": 65
+  }
+]
+products_json = json.dumps(products, indent=2)
+
+# --------- service worker ---------
+sw_js = """self.addEventListener('install', e => {
+  e.waitUntil(caches.open('fgs-v1').then(c => c.addAll(['./','/index.html','/styles.css','/app.js','/products.json'])));
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+});
+"""
+
+# --------- README ---------
+readme = f"""# Feel Good Sourdough — Lightweight Storefront
+
+This is a modern, accessible, static storefront optimized to **encourage online orders** and reduce friction.
+
+## Highlights
+- **One-page order flow** with persistent cart
+- **Fast filters** (search, category, dietary)
+- **48-hour lead-time** and **pickup-only** scheduling guardrails
+- **Email-out orders** now; **Stripe/Square** ready later
+- **Schema.org** structured data + SEO/OG tags
+- **Accessible**: keyboard-friendly, ARIA landmarks, focusable controls
+- **Service Worker** for quick repeat visits
+
+## Run locally
+Just open `index.html` in a browser. For fetch to work locally, serve with a tiny static server e.g.:
+
+```bash
+# Python 3
+python -m http.server 8080
+# then visit http://localhost:8080
+
